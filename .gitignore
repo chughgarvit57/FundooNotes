@@ -1,0 +1,48 @@
+## Ignore build outputs
+bin/
+obj/
+
+## Ignore user-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Ignore Rider IDE settings
+.idea/
+
+## Ignore VS Code settings
+.vscode/
+.vs/
+
+## Ignore logs
+*.log
+
+## Ignore secrets
+appsettings.json
+appsettings.*.json
+
+## Ignore dotnet tools
+*.dbmdl
+*.pdb
+
+## Ignore NuGet packages
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+## Ignore published files
+publish/
+*.publish.xml
+
+## Ignore temporary files
+~$*
+*.tmp
+*.bak
+
+## Ignore migrations
+Migrations/
+
+## Others
+.env
