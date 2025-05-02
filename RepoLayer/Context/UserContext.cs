@@ -5,7 +5,7 @@ namespace RepoLayer.Context
 {
     public class UserContext : DbContext
     {
-        public UserContext(DbContextOptions<UserContext> options): base(options) { }
+        public UserContext(DbContextOptions<UserContext> options) : base(options) { }
         public DbSet<UserEntity> Users { get; set; }
         public DbSet<NotesEntity> Notes { get; set; }
         public DbSet<CollabEntity> Collaborator { get; set; }

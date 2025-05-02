@@ -80,8 +80,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<LabelEntity>
                     {
                         IsSuccess = false,
-                        Message = "Label not found!",
-                        Data = null,
+                        Message = "Label not found!"
                     };
                 }
                 _context.Labels.Remove(label);

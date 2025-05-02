@@ -24,8 +24,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<NotesEntity>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 };
             }
         }
@@ -40,8 +39,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<List<NotesEntity>>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 };
             }
         }
@@ -56,8 +54,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 };
             }
         }
@@ -72,8 +69,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<NotesEntity>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 };
             }
         }
@@ -88,7 +84,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
+                    Message = ex.Message
                 };
             }
         }
@@ -103,8 +99,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 };
             }
         }
@@ -119,7 +114,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
+                    Message = ex.Message
                 };
             }
         }
@@ -134,8 +129,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<NotesEntity>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 };
             }
         }
@@ -151,7 +145,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
+                    Message = ex.Message
                 };
             }
         }
@@ -166,7 +160,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
+                    Message = ex.Message
                 };
             }
         }
@@ -181,8 +175,7 @@ namespace BusinessLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 };
             }
         }

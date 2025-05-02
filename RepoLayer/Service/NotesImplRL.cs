@@ -89,8 +89,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<NotesEntity>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = null
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -123,7 +122,7 @@ namespace RepoLayer.Service
                         return new ResponseDTO<List<NotesEntity>>
                         {
                             IsSuccess = false,
-                            Message = "Failed to deserialize cached notes",
+                            Message = "Failed to deserialize cached notes"
                         };
                     }
                 }
@@ -174,8 +173,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "Note not found",
-                        Data = null
+                        Message = "Note not found"
                     };
                 }
 
@@ -192,8 +190,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = true,
-                    Message = "Note deleted successfully",
-                    Data = null
+                    Message = "Note deleted successfully"
                 };
             }
             catch (Exception ex)
@@ -203,8 +200,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = null
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -219,8 +215,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<NotesEntity>
                     {
                         IsSuccess = false,
-                        Message = "Note not found",
-                        Data = null
+                        Message = "Note not found"
                     };
                 }
                 else
@@ -258,8 +253,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<NotesEntity>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = null
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -275,7 +269,6 @@ namespace RepoLayer.Service
                     {
                         IsSuccess = false,
                         Message = "Note not found",
-                        Data = false
                     };
                 }
 
@@ -310,8 +303,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = false
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -328,8 +320,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<bool>
                     {
                         IsSuccess = false,
-                        Message = "Note not found or doesn't belong to user",
-                        Data = false
+                        Message = "Note not found or doesn't belong to user"
                     };
                 }
 
@@ -339,7 +330,6 @@ namespace RepoLayer.Service
                     {
                         IsSuccess = true,
                         Message = "Note is already archived",
-                        Data = true
                     };
                 }
 
@@ -368,8 +358,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = true,
-                    Message = "Note archived successfully",
-                    Data = true
+                    Message = "Note archived successfully"
                 };
             }
             catch (Exception ex)
@@ -379,8 +368,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = false
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -398,8 +386,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<bool>
                     {
                         IsSuccess = false,
-                        Message = "Note not found or doesn't belong to user",
-                        Data = false
+                        Message = "Note not found or doesn't belong to user"
                     };
                 }
 
@@ -409,8 +396,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<bool>
                     {
                         IsSuccess = true,
-                        Message = "Note is not archived",
-                        Data = false
+                        Message = "Note is not archived"
                     };
                 }
 
@@ -438,8 +424,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = true,
-                    Message = "Note unarchived successfully",
-                    Data = false
+                    Message = "Note unarchived successfully"
                 };
             }
             catch (Exception ex)
@@ -449,8 +434,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = false
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -466,8 +450,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "Note not found",
-                        Data = null
+                        Message = "Note not found"
                     };
                 }
 
@@ -476,8 +459,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "Background color cannot be empty",
-                        Data = null
+                        Message = "Background color cannot be empty"
                     };
                 }
 
@@ -511,8 +493,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = $"Failed to update background color: {ex.Message}",
-                    Data = null
+                    Message = $"Failed to update background color: {ex.Message}"
                 };
             }
         }
@@ -576,8 +557,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = false
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -628,8 +608,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<NotesEntity>
                 {
                     IsSuccess = false,
-                    Message = $"An unexpected error occurred: {ex.Message}",
-                    Data = null
+                    Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
@@ -646,8 +625,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "Note not found or doesn't belong to user",
-                        Data = null
+                        Message = "Note not found or doesn't belong to user"
                     };
                 }
 
@@ -656,8 +634,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "No image file provided",
-                        Data = null
+                        Message = "No image file provided"
                     };
                 }
 
@@ -669,8 +646,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed.",
-                        Data = null
+                        Message = "Invalid file type. Only JPG, JPEG, PNG, and GIF are allowed."
                     };
                 }
 
@@ -680,8 +656,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "File size exceeds the 5MB limit",
-                        Data = null
+                        Message = "File size exceeds the 5MB limit"
                     };
                 }
 

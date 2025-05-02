@@ -1,5 +1,6 @@
 ﻿using ConsumerLayer.Consumer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using ModelLayer.Entity;
 using RepoLayer.Context;
@@ -54,8 +55,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<UserDTO>
                     {
                         IsSuccess = false,
-                        Message = "User already exists with this email!",
-                        Data = null
+                        Message = "User already exists with this email!"
                     };
                 }
 
@@ -66,8 +66,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<UserDTO>
                     {
                         IsSuccess = false,
-                        Message = "User already exists with this email!",
-                        Data = null
+                        Message = "User already exists with this email!"
                     };
                 }
 
@@ -121,8 +120,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<UserDTO>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while registering the user: {ex.Message}",
-                    Data = null
+                    Message = $"An error occurred while registering the user: {ex.Message}"
                 };
             }
         }
@@ -155,8 +153,7 @@ namespace RepoLayer.Service
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "User not found",
-                        Data = null
+                        Message = "User not found"
                     };
                 }
 
@@ -179,8 +176,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while retrieving the user: {ex.Message}",
-                    Data = null
+                    Message = $"An error occurred while retrieving the user: {ex.Message}"
                 };
             }
         }
@@ -192,36 +188,28 @@ namespace RepoLayer.Service
             {
                 _logger.LogInformation("Deleting user with email: {Email}", email);
 
-                // Check cache first
                 var cacheKey = GetUserCacheKey(email);
                 var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
-                UserEntity user = null;
 
-                if (cachedUser.HasValue)
-                {
-                    user = JsonSerializer.Deserialize<UserEntity>(cachedUser);
-                    await _redisDatabase.KeyDeleteAsync(cacheKey);
-                    await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(user.FirstName));
-                }
-
-                user ??= await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
-                if (user == null)
+                // Always fetch from DB to ensure entity tracking is correct
+                var userFound = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+                if (userFound == null)
                 {
                     _logger.LogWarning("User not found for deletion: {Email}", email);
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "User not found",
-                        Data = null
+                        Message = "User not found"
                     };
                 }
 
-                _context.Users.Remove(user);
+                // Remove user from DB
+                _context.Users.Remove(userFound);
                 await _context.SaveChangesAsync();
 
-                // Remove from cache if not already removed
+                // Remove from cache (use DB version to access properties safely)
                 await _redisDatabase.KeyDeleteAsync(cacheKey);
-                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(user.FirstName));
+                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(userFound.FirstName));
 
                 await transaction.CommitAsync();
 
@@ -229,8 +217,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = true,
-                    Message = "User deleted successfully",
-                    Data = null
+                    Message = "User deleted successfully"
                 };
             }
             catch (Exception ex)
@@ -240,11 +227,11 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while deleting the user: {ex.Message}",
-                    Data = null
+                    Message = $"An error occurred while deleting the user: {ex.Message}"
                 };
             }
         }
+
 
         public async Task<ResponseDTO<UserEntity>> Login(LoginDTO loginRequest)
         {
@@ -255,44 +242,56 @@ namespace RepoLayer.Service
                 // Check cache first
                 var cacheKey = GetUserCacheKey(loginRequest.Email);
                 var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
-                UserEntity user = null;
 
+                // Handle cached user case
                 if (cachedUser.HasValue)
                 {
-                    user = JsonSerializer.Deserialize<UserEntity>(cachedUser);
+                    var cachedUserEntity = JsonSerializer.Deserialize<UserEntity>(cachedUser);
                     _logger.LogInformation("User found in cache for login: {Email}", loginRequest.Email);
-                }
-                else
-                {
-                    user = await _context.Users.SingleOrDefaultAsync(x => x.Email == loginRequest.Email);
-                    if (user != null)
+
+                    if (_passwordHash.VerifyPassword(loginRequest.Password, cachedUserEntity.Password))
                     {
-                        // Cache the user data
-                        var serializedUser = JsonSerializer.Serialize(user);
-                        await _redisDatabase.StringSetAsync(cacheKey, serializedUser, TimeSpan.FromMinutes(30));
+                        _logger.LogInformation("Login successful for email: {Email}", loginRequest.Email);
+                        return new ResponseDTO<UserEntity>
+                        {
+                            IsSuccess = true,
+                            Message = "Login successful",
+                            Data = cachedUserEntity
+                        };
                     }
+
+                    _logger.LogWarning("Login failed: invalid password for email: {Email}", loginRequest.Email);
+                    return new ResponseDTO<UserEntity>
+                    {
+                        IsSuccess = false,
+                        Message = "Invalid password!"
+                    };
                 }
 
-                if (user == null)
+                // Handle database case
+                var dbUser = await _context.Users.SingleOrDefaultAsync(x => x.Email == loginRequest.Email);
+                if (dbUser == null)
                 {
                     _logger.LogWarning("Login failed: user not found for email: {Email}", loginRequest.Email);
                     return new ResponseDTO<UserEntity>
                     {
                         IsSuccess = false,
-                        Message = "User not found!",
-                        Data = null
+                        Message = "User not found!"
                     };
                 }
 
-                bool isPasswordCorrect = _passwordHash.VerifyPassword(loginRequest.Password, user.Password);
-                if (isPasswordCorrect)
+                // Cache the user data since it wasn't in cache
+                var serializedUser = JsonSerializer.Serialize(dbUser);
+                await _redisDatabase.StringSetAsync(cacheKey, serializedUser, TimeSpan.FromMinutes(30));
+
+                if (_passwordHash.VerifyPassword(loginRequest.Password, dbUser.Password))
                 {
                     _logger.LogInformation("Login successful for email: {Email}", loginRequest.Email);
                     return new ResponseDTO<UserEntity>
                     {
                         IsSuccess = true,
                         Message = "Login successful",
-                        Data = user
+                        Data = dbUser
                     };
                 }
 
@@ -300,8 +299,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<UserEntity>
                 {
                     IsSuccess = false,
-                    Message = "Invalid password!",
-                    Data = null
+                    Message = "Invalid password!"
                 };
             }
             catch (Exception ex)
@@ -310,8 +308,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<UserEntity>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while logging in: {ex.Message}",
-                    Data = null
+                    Message = $"An error occurred while logging in: {ex.Message}"
                 };
             }
         }
@@ -323,33 +320,51 @@ namespace RepoLayer.Service
             {
                 _logger.LogInformation("Updating user with email: {Email}", email);
 
-                // Check cache first
                 var cacheKey = GetUserCacheKey(email);
                 var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
-                UserEntity user = null;
 
+                // Handle cached user case
                 if (cachedUser.HasValue)
                 {
-                    user = JsonSerializer.Deserialize<UserEntity>(cachedUser);
+                    var cachedUserEntity = JsonSerializer.Deserialize<UserEntity>(cachedUser);
                     await _redisDatabase.KeyDeleteAsync(cacheKey);
-                    await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(user.FirstName));
+                    await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(cachedUserEntity.FirstName));
+
+                    return await UpdateAndCacheUser(cachedUserEntity, firstName, lastName, cacheKey);
                 }
 
-                user ??= await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
-                if (user == null)
+                // Handle database case
+                var dbUser = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+                if (dbUser == null)
                 {
                     _logger.LogWarning("Update failed: user not found with email: {Email}", email);
                     return new ResponseDTO<UserEntity>
                     {
                         IsSuccess = false,
-                        Message = "User not found",
-                        Data = null
+                        Message = "User not found"
                     };
                 }
 
-                // Store old first name for cache invalidation
-                var oldFirstName = user.FirstName;
+                return await UpdateAndCacheUser(dbUser, firstName, lastName, cacheKey);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error occurred while updating user: {Email}", email);
+                return new ResponseDTO<UserEntity>
+                {
+                    IsSuccess = false,
+                    Message = $"An error occurred while updating the user: {ex.Message}"
+                };
+            }
+        }
 
+        private async Task<ResponseDTO<UserEntity>> UpdateAndCacheUser(UserEntity user, string firstName, string lastName, string cacheKey)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var oldFirstName = user.FirstName;
                 user.FirstName = firstName;
                 user.LastName = lastName;
 
@@ -361,7 +376,7 @@ namespace RepoLayer.Service
                 await _redisDatabase.StringSetAsync(cacheKey, serializedUser, TimeSpan.FromMinutes(30));
                 await _redisDatabase.StringSetAsync(GetUserByNameCacheKey(firstName), serializedUser, TimeSpan.FromMinutes(30));
 
-                // Remove old name cache if first name changed
+                // Remove old name cache if changed
                 if (oldFirstName != firstName)
                 {
                     await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(oldFirstName));
@@ -369,7 +384,7 @@ namespace RepoLayer.Service
 
                 await transaction.CommitAsync();
 
-                _logger.LogInformation("User updated successfully: {Email}", email);
+                _logger.LogInformation("User updated successfully: {Email}", user.Email);
                 return new ResponseDTO<UserEntity>
                 {
                     IsSuccess = true,
@@ -380,12 +395,15 @@ namespace RepoLayer.Service
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error occurred while updating user: {Email}", email);
+                _logger.LogError(ex, "Error updating user {Email} in UpdateAndCacheUser", user.Email);
+                await _redisDatabase.KeyDeleteAsync(cacheKey);
+                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(firstName)));
+                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(user.FirstName)));
+
                 return new ResponseDTO<UserEntity>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while updating the user: {ex.Message}",
-                    Data = null
+                    Message = $"Failed to update user: {ex.Message}"
                 };
             }
         }
@@ -397,40 +415,80 @@ namespace RepoLayer.Service
             {
                 _logger.LogInformation("Changing password for email: {Email}", email);
 
-                // Check cache first
                 var cacheKey = GetUserCacheKey(email);
                 var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
-                UserEntity user = null;
 
                 if (cachedUser.HasValue)
                 {
-                    user = JsonSerializer.Deserialize<UserEntity>(cachedUser);
-                }
-                else
-                {
-                    user = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+                    try
+                    {
+                        var cachedUserEntity = JsonSerializer.Deserialize<UserEntity>(cachedUser);
+                        return await ProcessPasswordChange(transaction, cachedUserEntity, oldPassword, newPassword, cacheKey);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing cached user for email: {Email}", email);
+                        return new ResponseDTO<UserEntity>
+                        {
+                            IsSuccess = false,
+                            Message = "Error processing cached user"
+                        };
+                    }
                 }
 
-                if (user == null)
+                try
                 {
-                    _logger.LogWarning("Password change failed: user not found for email: {Email}", email);
+                    var dbUser = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+                    if (dbUser == null)
+                    {
+                        _logger.LogWarning("Password change failed: user not found for email: {Email}", email);
+                        return new ResponseDTO<UserEntity>
+                        {
+                            IsSuccess = false,
+                            Message = "User not found"
+                        };
+                    }
+
+                    return await ProcessPasswordChange(transaction, dbUser, oldPassword, newPassword, cacheKey);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error retrieving user from database for email: {Email}", email);
                     return new ResponseDTO<UserEntity>
                     {
                         IsSuccess = false,
-                        Message = "User not found",
-                        Data = null
+                        Message = "Error retrieving user from database"
                     };
                 }
-
-                bool isOldPasswordCorrect = _passwordHash.VerifyPassword(oldPassword, user.Password);
-                if (!isOldPasswordCorrect)
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error occurred while changing password for email: {Email}", email);
+                return new ResponseDTO<UserEntity>
                 {
-                    _logger.LogWarning("Password change failed: incorrect old password for email: {Email}", email);
+                    IsSuccess = false,
+                    Message = $"An error occurred while changing the password: {ex.Message}"
+                };
+            }
+        }
+
+        private async Task<ResponseDTO<UserEntity>> ProcessPasswordChange(
+            IDbContextTransaction transaction,
+            UserEntity user,
+            string oldPassword,
+            string newPassword,
+            string cacheKey)
+        {
+            try
+            {
+                if (!_passwordHash.VerifyPassword(oldPassword, user.Password))
+                {
+                    _logger.LogWarning("Password change failed: incorrect old password for email: {Email}", user.Email);
                     return new ResponseDTO<UserEntity>
                     {
                         IsSuccess = false,
-                        Message = "Old password is incorrect",
-                        Data = null
+                        Message = "Old password is incorrect"
                     };
                 }
 
@@ -438,14 +496,25 @@ namespace RepoLayer.Service
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
 
-                // Update cache
-                var serializedUser = JsonSerializer.Serialize(user);
-                await _redisDatabase.StringSetAsync(cacheKey, serializedUser, TimeSpan.FromMinutes(30));
-                await _redisDatabase.StringSetAsync(GetUserByNameCacheKey(user.FirstName), serializedUser, TimeSpan.FromMinutes(30));
+                try
+                {
+                    var serializedUser = JsonSerializer.Serialize(user);
+                    await _redisDatabase.StringSetAsync(cacheKey, serializedUser, TimeSpan.FromMinutes(30));
+                    await _redisDatabase.StringSetAsync(GetUserByNameCacheKey(user.FirstName), serializedUser, TimeSpan.FromMinutes(30));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating cache for user: {Email}", user.Email);
+                    return new ResponseDTO<UserEntity>
+                    {
+                        IsSuccess = false,
+                        Message = "Failed to update cache"
+                    };
+                }
 
                 await transaction.CommitAsync();
+                _logger.LogInformation("Password changed successfully for email: {Email}", user.Email);
 
-                _logger.LogInformation("Password changed successfully for email: {Email}", email);
                 return new ResponseDTO<UserEntity>
                 {
                     IsSuccess = true,
@@ -455,13 +524,11 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error occurred while changing password for email: {Email}", email);
+                _logger.LogError(ex, "Error in ProcessPasswordChange for email: {Email}", user.Email);
                 return new ResponseDTO<UserEntity>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while changing the password: {ex.Message}",
-                    Data = null
+                    Message = $"An error occurred while processing the password change: {ex.Message}"
                 };
             }
         }
@@ -475,37 +542,50 @@ namespace RepoLayer.Service
                 // Check cache first
                 var cacheKey = GetUserCacheKey(email);
                 var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
-                UserEntity user = null;
 
                 if (cachedUser.HasValue)
                 {
-                    user = JsonSerializer.Deserialize<UserEntity>(cachedUser);
+                    var user = JsonSerializer.Deserialize<UserEntity>(cachedUser);
                     _logger.LogInformation("User found in cache for password reset: {Email}", email);
-                }
-                else
-                {
-                    user = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+
+                    var message = new EmailMessageDTO
+                    {
+                        To = email,
+                        Subject = "Reset Password",
+                        Body = $"Click here to reset your password: <a href='http://localhost:5000/resetpassword?email={email}'>Reset Password</a>"
+                    };
+
+                    _rabbitMQProducer.PublishMessageAsync(message);
+                    _rabbitMQConsumer.ConsumeMessagesAsync();
+
+                    _logger.LogInformation("Reset password email queued successfully for: {Email}", email);
+                    return new ResponseDTO<string>
+                    {
+                        IsSuccess = true,
+                        Message = "Reset password link sent to your email!",
+                    };
                 }
 
-                if (user == null)
+                // If not in cache, check database
+                var dbUser = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+                if (dbUser == null)
                 {
                     _logger.LogWarning("Forgot password failed: user not found for email: {Email}", email);
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "User not found",
-                        Data = null
+                        Message = "User not found"
                     };
                 }
 
-                var message = new EmailMessageDTO
+                var dbMessage = new EmailMessageDTO
                 {
                     To = email,
                     Subject = "Reset Password",
                     Body = $"Click here to reset your password: <a href='http://localhost:5000/resetpassword?email={email}'>Reset Password</a>"
                 };
 
-                _rabbitMQProducer.PublishMessageAsync(message);
+                _rabbitMQProducer.PublishMessageAsync(dbMessage);
                 _rabbitMQConsumer.ConsumeMessagesAsync();
 
                 _logger.LogInformation("Reset password email queued successfully for: {Email}", email);
@@ -521,8 +601,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while sending the reset password link: {ex.Message}",
-                    Data = null
+                    Message = $"An error occurred while sending the reset password link: {ex.Message}"
                 };
             }
         }
@@ -536,37 +615,49 @@ namespace RepoLayer.Service
                 // Check cache first
                 var cacheKey = GetUserCacheKey(email);
                 var cachedUser = await _redisDatabase.StringGetAsync(cacheKey);
-                UserEntity user = null;
 
                 if (cachedUser.HasValue)
                 {
-                    user = JsonSerializer.Deserialize<UserEntity>(cachedUser);
+                    var cachedUserEntity = JsonSerializer.Deserialize<UserEntity>(cachedUser);
                     _logger.LogInformation("User found in cache for email sending: {Email}", email);
-                }
-                else
-                {
-                    user = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+
+                    var message = new EmailMessageDTO
+                    {
+                        To = email,
+                        Subject = "Welcome to our service",
+                        Body = $"Hello {cachedUserEntity.FirstName}, welcome to our service!"
+                    };
+
+                    _emailService.SendEmail(message.To, message.Subject, message.Body);
+
+                    _logger.LogInformation("Email sent successfully to: {Email}", email);
+                    return new ResponseDTO<string>
+                    {
+                        IsSuccess = true,
+                        Message = "Email sent successfully!",
+                    };
                 }
 
-                if (user == null)
+                // If not in cache, check database
+                var dbUser = await _context.Users.SingleOrDefaultAsync(x => x.Email == email);
+                if (dbUser == null)
                 {
                     _logger.LogWarning("SendEmail failed: user not found for email: {Email}", email);
                     return new ResponseDTO<string>
                     {
                         IsSuccess = false,
-                        Message = "User not found",
-                        Data = null
+                        Message = "User not found"
                     };
                 }
 
-                var message = new EmailMessageDTO
+                var dbMessage = new EmailMessageDTO
                 {
                     To = email,
                     Subject = "Welcome to our service",
-                    Body = $"Hello {user.FirstName}, welcome to our service!"
+                    Body = $"Hello {dbUser.FirstName}, welcome to our service!"
                 };
 
-                _emailService.SendEmail(message.To, message.Subject, message.Body);
+                _emailService.SendEmail(dbMessage.To, dbMessage.Subject, dbMessage.Body);
 
                 _logger.LogInformation("Email sent successfully to: {Email}", email);
                 return new ResponseDTO<string>
@@ -581,8 +672,7 @@ namespace RepoLayer.Service
                 return new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = $"An error occurred while sending the email: {ex.Message}",
-                    Data = null
+                    Message = $"An error occurred while sending the email: {ex.Message}"
                 };
             }
         }

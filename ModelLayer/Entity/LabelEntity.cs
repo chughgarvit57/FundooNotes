@@ -8,7 +8,7 @@ namespace ModelLayer.Entity
     {
         [Key]
         public int LabelId { get; set; }
-        public string LabelName { get; set; }
+        public string LabelName { get; set; } = string.Empty;
         [ForeignKey("Users")]
         public int UserId { get; set; }
         public DateTime CreatedAt { get; set; }

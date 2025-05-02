@@ -21,7 +21,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<UserDTO> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<UserDTO>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
 
@@ -33,7 +37,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<string> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<string>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
 
@@ -45,7 +53,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<string> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<string>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
 
@@ -57,7 +69,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<UserEntity> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<UserEntity>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
 
@@ -69,7 +85,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<UserEntity> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<UserEntity>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
 
@@ -81,7 +101,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<UserEntity> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<UserEntity>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
 
@@ -93,7 +117,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<string> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<string>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
 
@@ -105,7 +133,11 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<string> { IsSuccess = false, Message = ex.Message };
+                return new ResponseDTO<string>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
             }
         }
     }
