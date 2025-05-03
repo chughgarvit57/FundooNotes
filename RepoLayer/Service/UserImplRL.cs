@@ -20,7 +20,7 @@ namespace RepoLayer.Service
         public RabbitMQConsumer _rabbitMQConsumer;
         public EmailService _emailService;
         private readonly ILogger<UserImplRL> _logger;
-        private readonly IDatabase _redisDatabase;
+        private readonly StackExchange.Redis.IDatabase _redisDatabase;
         private readonly IConnectionMultiplexer _redisConnection;
 
         public UserImplRL(UserContext context, PasswordHashService passHash, RabbitMQProducer rabbitMQProducer,
@@ -397,8 +397,8 @@ namespace RepoLayer.Service
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error updating user {Email} in UpdateAndCacheUser", user.Email);
                 await _redisDatabase.KeyDeleteAsync(cacheKey);
-                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(firstName)));
-                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(user.FirstName)));
+                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(firstName));
+                await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(user.FirstName));
 
                 return new ResponseDTO<UserEntity>
                 {
