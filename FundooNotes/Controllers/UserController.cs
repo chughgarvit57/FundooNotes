@@ -81,7 +81,7 @@ namespace FundooNotes.Controllers
         /// <param name="firstName">First name of the user to search for</param>
         /// <returns>User details if found, otherwise error message</returns>
         [HttpGet]
-        public async Task<IActionResult> GetUserByName(string firstName)
+        public async Task<IActionResult> GetUserByName([FromForm] string firstName)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success message if deleted, otherwise error message</returns>
         [HttpDelete("delete")]
         [Authorize]
-        public async Task<IActionResult> DeleteUser(string email)
+        public async Task<IActionResult> DeleteUser([FromForm] string email)
         {
             try
             {
@@ -238,7 +238,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success message if password changed, otherwise error message</returns>
         [HttpPost("changePassword")]
         [Authorize]
-        public async Task<IActionResult> ChangePassword(string oldPassword, string newPassword)
+        public async Task<IActionResult> ChangePassword([FromForm] string oldPassword, [FromForm] string newPassword)
         {
             try
             {
@@ -280,7 +280,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success message if email exists, otherwise error message</returns>
         [HttpPost("forgetPassword")]
         [AllowAnonymous]
-        public async Task<IActionResult> ForgetPassword(string email)
+        public async Task<IActionResult> ForgetPassword([FromForm] string email)
         {
             try
             {
@@ -313,7 +313,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success message if email sent, otherwise error message</returns>
         [HttpGet("sendEmail")]
         [AllowAnonymous]
-        public async Task<IActionResult> SendEmail(string email)
+        public async Task<IActionResult> SendEmail([FromForm] string email)
         {
             try
             {

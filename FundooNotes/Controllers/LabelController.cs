@@ -85,7 +85,7 @@ namespace FundooNotes.Controllers
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> DeleteLabel(string labelName)
+        public async Task<IActionResult> DeleteLabel([FromForm] string labelName)
         {
             try
             {
@@ -122,7 +122,7 @@ namespace FundooNotes.Controllers
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> AddLabelToNote(string labelName, int noteId)
+        public async Task<IActionResult> AddLabelToNote([FromForm] string labelName, [FromForm] int noteId)
         {
             try
             {
@@ -229,7 +229,7 @@ namespace FundooNotes.Controllers
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> ViewLabelById(int labelId)
+        public async Task<IActionResult> ViewLabelById([FromForm] int labelId)
         {
             try
             {
