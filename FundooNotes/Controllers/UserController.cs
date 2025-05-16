@@ -70,8 +70,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<UserDTO>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -103,8 +102,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<UserDTO>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -137,8 +135,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<UserDTO>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -160,8 +157,7 @@ namespace FundooNotes.Controllers
                     return BadRequest(new ResponseDTO<string>()
                     {
                         IsSuccess = false,
-                        Message = "Invalid credentials",
-                        Data = null
+                        Message = "Invalid credentials"
                     });
                 }
                 var token = _authService.GenerateToken(response.Data);
@@ -170,8 +166,7 @@ namespace FundooNotes.Controllers
                     return BadRequest(new ResponseDTO<string>()
                     {
                         IsSuccess = false,
-                        Message = "Token generation failed",
-                        Data = null
+                        Message = "Token generation failed"
                     });
                 }
                 _logger.LogInformation("User logged in successfully");
@@ -187,8 +182,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<UserDTO>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -201,7 +195,7 @@ namespace FundooNotes.Controllers
         /// <returns>Updated user details or error message</returns>
         [HttpPut("update")]
         [Authorize]
-        public async Task<IActionResult> UpdateUser(string firstName, string lastName)
+        public async Task<IActionResult> UpdateUser([FromForm] string firstName, [FromForm] string lastName)
         {
             try
             {
@@ -211,8 +205,7 @@ namespace FundooNotes.Controllers
                     return BadRequest(new ResponseDTO<UserDTO>()
                     {
                         IsSuccess = false,
-                        Message = "Invalid token!",
-                        Data = null
+                        Message = "Invalid token!"
                     });
                 }
                 var response = await _uberBL.UpdateUser(email, firstName, lastName);
@@ -232,8 +225,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<UserDTO>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -256,8 +248,7 @@ namespace FundooNotes.Controllers
                     return BadRequest(new ResponseDTO<UserDTO>()
                     {
                         IsSuccess = false,
-                        Message = "Invalid token!",
-                        Data = null
+                        Message = "Invalid token!"
                     });
                 }
                 var response = await _uberBL.ChangePassword(email, oldPassword, newPassword);
@@ -277,8 +268,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<UserDTO>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -311,8 +301,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<UserDTO>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -345,8 +334,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }

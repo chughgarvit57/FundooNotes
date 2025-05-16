@@ -62,8 +62,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<NotesEntity>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -94,8 +93,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<NotesEntity>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -107,7 +105,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success/failure status of the deletion operation</returns>
         [HttpDelete("DeleteNote")]
         [Authorize]
-        public async Task<IActionResult> DeleteNote(string title)
+        public async Task<IActionResult> DeleteNote([FromForm] string title)
         {
             try
             {
@@ -126,8 +124,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -159,8 +156,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<NotesEntity>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -173,7 +169,7 @@ namespace FundooNotes.Controllers
         /// <returns>Updated pin status of the note</returns>
         [HttpGet("PinUnpin")]
         [Authorize]
-        public async Task<IActionResult> PinUnpinNote(string title, int noteId)
+        public async Task<IActionResult> PinUnpinNote([FromForm] string title, [FromForm] int noteId)
         {
             try
             {
@@ -193,8 +189,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<bool>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = false
+                    Message = ex.Message
                 });
             }
         }
@@ -206,7 +201,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success/failure status of the archive operation</returns>
         [HttpPatch("Archive")]
         [Authorize]
-        public async Task<IActionResult> ArchiveNoteAsync(int noteId)
+        public async Task<IActionResult> ArchiveNoteAsync([FromForm] int noteId)
         {
             try
             {
@@ -226,8 +221,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<bool>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = false
+                    Message = ex.Message
                 });
             }
         }
@@ -239,7 +233,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success/failure status of the unarchive operation</returns>
         [HttpPatch("UnArchive")]
         [Authorize]
-        public async Task<IActionResult> UnArchiveNoteAsync(int noteId)
+        public async Task<IActionResult> UnArchiveNoteAsync([FromForm] int noteId)
         {
             try
             {
@@ -259,8 +253,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<bool>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = false
+                    Message = ex.Message
                 });
             }
         }
@@ -272,7 +265,7 @@ namespace FundooNotes.Controllers
         /// <returns>Updated note details with new background color</returns>
         [HttpPatch("BackgroundColorNote")]
         [Authorize]
-        public async Task<IActionResult> BackgroundColorNote(string backgroundColor)
+        public async Task<IActionResult> BackgroundColorNote([FromForm] string backgroundColor)
         {
             try
             {
@@ -292,8 +285,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -305,7 +297,7 @@ namespace FundooNotes.Controllers
         /// <returns>Success/failure status of the trash operation</returns>
         [HttpPatch("TrashNote")]
         [Authorize]
-        public async Task<IActionResult> TrashNote(int noteId)
+        public async Task<IActionResult> TrashNote([FromForm] int noteId)
         {
             try
             {
@@ -325,8 +317,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<bool>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = false
+                    Message = ex.Message
                 });
             }
         }
@@ -338,7 +329,7 @@ namespace FundooNotes.Controllers
         /// <returns>Restored note details or error message</returns>
         [HttpPost("RestoreNote")]
         [Authorize]
-        public async Task<IActionResult> RestoreNote(int noteId)
+        public async Task<IActionResult> RestoreNote([FromForm] int noteId)
         {
             try
             {
@@ -358,8 +349,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<NotesEntity>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }
@@ -372,7 +362,7 @@ namespace FundooNotes.Controllers
         /// <returns>Note details with image URL or error message</returns>
         [HttpPost("UploadImageNote")]
         [Authorize]
-        public async Task<IActionResult> UploadImageNote(int noteId, IFormFile imageFile)
+        public async Task<IActionResult> UploadImageNote([FromForm] int noteId, IFormFile imageFile)
         {
             try
             {
@@ -392,8 +382,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>()
                 {
                     IsSuccess = false,
-                    Message = ex.Message,
-                    Data = null
+                    Message = ex.Message
                 });
             }
         }

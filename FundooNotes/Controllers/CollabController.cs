@@ -111,7 +111,7 @@ namespace FundooNotes.Controllers
         [Authorize] // requires authentication - requires valid jwt token
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> GetAllCollaborators(int noteId)
+        public async Task<IActionResult> GetAllCollaborators([FromForm] int noteId)
         {
             try
             {

@@ -49,7 +49,7 @@ namespace FundooNotes.Controllers
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CreateLabel(string labelName)
+        public async Task<IActionResult> CreateLabel([FromForm] string labelName)
         {
             try
             {
@@ -69,8 +69,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = "Error occurred while creating label",
-                    Data = ex.Message
+                    Message = ex.Message
                 });
             }
         }
@@ -106,8 +105,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = "Error occurred while deleting label",
-                    Data = ex.Message
+                    Message = ex.Message
                 });
             }
         }
@@ -144,8 +142,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = "Error occurred while adding label to note",
-                    Data = ex.Message
+                    Message = ex.Message
                 });
             }
         }
@@ -180,8 +177,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = "Error occurred while viewing all labels",
-                    Data = ex.Message
+                    Message = ex.Message
                 });
             }
         }
@@ -217,8 +213,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = "Error occurred while updating label",
-                    Data = ex.Message
+                    Message = ex.Message
                 });
             }
         }
@@ -254,7 +249,7 @@ namespace FundooNotes.Controllers
                 return BadRequest(new ResponseDTO<string>
                 {
                     IsSuccess = false,
-                    Message = $"Error occurred while fetching label: {ex.Message}"
+                    Message = ex.Message
                 });
             }
         }
