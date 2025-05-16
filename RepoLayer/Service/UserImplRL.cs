@@ -1,6 +1,5 @@
 ﻿using ConsumerLayer.Consumer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using ModelLayer.Entity;
 using RepoLayer.Context;
@@ -42,7 +41,6 @@ namespace RepoLayer.Service
 
         public async Task<ResponseDTO<UserDTO>> AddUser(UserDTO request)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation("Attempting to register user with email: {Email}", request.Email);
@@ -102,8 +100,6 @@ namespace RepoLayer.Service
                 };
                 _emailService.SendEmail(message.To, message.Subject, message.Body);
 
-                await transaction.CommitAsync();
-
                 _logger.LogInformation("User registered and welcome email sent to: {Email}", request.Email);
 
                 return new ResponseDTO<UserDTO>
@@ -115,7 +111,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error occurred while registering user: {Email}", request.Email);
                 return new ResponseDTO<UserDTO>
                 {
@@ -183,7 +178,6 @@ namespace RepoLayer.Service
 
         public async Task<ResponseDTO<string>> DeleteUser(string email)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation("Deleting user with email: {Email}", email);
@@ -211,8 +205,6 @@ namespace RepoLayer.Service
                 await _redisDatabase.KeyDeleteAsync(cacheKey);
                 await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(userFound.FirstName));
 
-                await transaction.CommitAsync();
-
                 _logger.LogInformation("User deleted successfully: {Email}", email);
                 return new ResponseDTO<string>
                 {
@@ -222,7 +214,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error occurred while deleting user: {Email}", email);
                 return new ResponseDTO<string>
                 {
@@ -231,7 +222,6 @@ namespace RepoLayer.Service
                 };
             }
         }
-
 
         public async Task<ResponseDTO<UserEntity>> Login(LoginDTO loginRequest)
         {
@@ -315,7 +305,6 @@ namespace RepoLayer.Service
 
         public async Task<ResponseDTO<UserEntity>> UpdateUser(string email, string firstName, string lastName)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation("Updating user with email: {Email}", email);
@@ -349,7 +338,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error occurred while updating user: {Email}", email);
                 return new ResponseDTO<UserEntity>
                 {
@@ -361,7 +349,6 @@ namespace RepoLayer.Service
 
         private async Task<ResponseDTO<UserEntity>> UpdateAndCacheUser(UserEntity user, string firstName, string lastName, string cacheKey)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var oldFirstName = user.FirstName;
@@ -382,8 +369,6 @@ namespace RepoLayer.Service
                     await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(oldFirstName));
                 }
 
-                await transaction.CommitAsync();
-
                 _logger.LogInformation("User updated successfully: {Email}", user.Email);
                 return new ResponseDTO<UserEntity>
                 {
@@ -394,7 +379,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error updating user {Email} in UpdateAndCacheUser", user.Email);
                 await _redisDatabase.KeyDeleteAsync(cacheKey);
                 await _redisDatabase.KeyDeleteAsync(GetUserByNameCacheKey(firstName));
@@ -410,7 +394,6 @@ namespace RepoLayer.Service
 
         public async Task<ResponseDTO<UserEntity>> ChangePassword(string email, string oldPassword, string newPassword)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation("Changing password for email: {Email}", email);
@@ -423,7 +406,7 @@ namespace RepoLayer.Service
                     try
                     {
                         var cachedUserEntity = JsonSerializer.Deserialize<UserEntity>(cachedUser);
-                        return await ProcessPasswordChange(transaction, cachedUserEntity, oldPassword, newPassword, cacheKey);
+                        return await ProcessPasswordChange(cachedUserEntity, oldPassword, newPassword, cacheKey);
                     }
                     catch (Exception ex)
                     {
@@ -449,7 +432,7 @@ namespace RepoLayer.Service
                         };
                     }
 
-                    return await ProcessPasswordChange(transaction, dbUser, oldPassword, newPassword, cacheKey);
+                    return await ProcessPasswordChange(dbUser, oldPassword, newPassword, cacheKey);
                 }
                 catch (Exception ex)
                 {
@@ -463,7 +446,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error occurred while changing password for email: {Email}", email);
                 return new ResponseDTO<UserEntity>
                 {
@@ -474,7 +456,6 @@ namespace RepoLayer.Service
         }
 
         private async Task<ResponseDTO<UserEntity>> ProcessPasswordChange(
-            IDbContextTransaction transaction,
             UserEntity user,
             string oldPassword,
             string newPassword,
@@ -512,7 +493,6 @@ namespace RepoLayer.Service
                     };
                 }
 
-                await transaction.CommitAsync();
                 _logger.LogInformation("Password changed successfully for email: {Email}", user.Email);
 
                 return new ResponseDTO<UserEntity>

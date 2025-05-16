@@ -22,15 +22,15 @@ namespace RepoLayer.Service
             _redisDb = redis.GetDatabase();
             _logger = logger;
         }
-        
-        private string GetLabelsCacheKey(int userId) => $"user{userId}:labels";
+
+        private string GetLabelsCacheKey(int userId) => $"user:{userId}:labels";
+        private string GetLabelByIdCacheKey(int labelId, int userId) => $"user:{userId}:label:{labelId}";
 
         public async Task<ResponseDTO<LabelEntity>> CreateLabelAsync(string labelName, int userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                _logger.LogInformation("Attepting to create label: {LabelName} for user: {UserId}", labelName, userId);
+                _logger.LogInformation("Attempting to create label: {LabelName} for user: {UserId}", labelName, userId);
                 var label = await _context.Labels.FirstOrDefaultAsync(x => x.LabelName == labelName && x.UserId == userId);
                 if (label != null)
                 {
@@ -47,9 +47,15 @@ namespace RepoLayer.Service
                 };
                 await _context.Labels.AddAsync(newLabel);
                 await _context.SaveChangesAsync();
-                await _redisDb.StringSetAsync(GetLabelsCacheKey(userId), JsonSerializer.Serialize(newLabel), TimeSpan.FromMinutes(30));
+
+                // Update the labels list cache
+                var labels = await _context.Labels
+                    .Where(x => x.UserId == userId)
+                    .ToListAsync();
+                await _redisDb.StringSetAsync(GetLabelsCacheKey(userId), JsonSerializer.Serialize(labels), TimeSpan.FromMinutes(30));
+                await _redisDb.StringSetAsync(GetLabelByIdCacheKey(newLabel.LabelId, userId), JsonSerializer.Serialize(newLabel), TimeSpan.FromMinutes(30));
+
                 _logger.LogInformation("Label created successfully: {LabelId}", newLabel.LabelId);
-                await transaction.CommitAsync();
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = true,
@@ -60,7 +66,6 @@ namespace RepoLayer.Service
             catch (Exception ex)
             {
                 _logger.LogError("Error creating label: {Error}", ex.Message);
-                await transaction.RollbackAsync();
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = false,
@@ -71,7 +76,6 @@ namespace RepoLayer.Service
 
         public async Task<ResponseDTO<LabelEntity>> DeleteLabelAsync(string labelName, int userId)
         {
-            using var trsansaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var label = await _context.Labels.FirstOrDefaultAsync(x => x.LabelName == labelName && x.UserId == userId);
@@ -85,9 +89,15 @@ namespace RepoLayer.Service
                 }
                 _context.Labels.Remove(label);
                 await _context.SaveChangesAsync();
-                await _redisDb.KeyDeleteAsync(GetLabelsCacheKey(userId));
+
+                // Update the labels list cache
+                var labels = await _context.Labels
+                    .Where(x => x.UserId == userId)
+                    .ToListAsync();
+                await _redisDb.StringSetAsync(GetLabelsCacheKey(userId), JsonSerializer.Serialize(labels), TimeSpan.FromMinutes(30));
+                await _redisDb.KeyDeleteAsync(GetLabelByIdCacheKey(label.LabelId, userId));
+
                 _logger.LogInformation("Label with id:{Id} deleted successfully", label.LabelId);
-                await trsansaction.CommitAsync();
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = true,
@@ -104,9 +114,9 @@ namespace RepoLayer.Service
                 };
             }
         }
+
         public async Task<ResponseDTO<LabelEntity>> AddLabelToNoteAsync(string labelName, int noteId, int userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var label = await _context.Labels.Include(l => l.LabelNotes).FirstOrDefaultAsync(x => x.LabelName == labelName && x.UserId == userId);
@@ -142,20 +152,25 @@ namespace RepoLayer.Service
                 };
                 note.LabelNotes.Add(labelNote);
                 await _context.SaveChangesAsync();
+
+                // Update caches
                 var updatedLabel = await _context.Labels.Include(l => l.LabelNotes).FirstOrDefaultAsync(x => x.LabelId == label.LabelId);
-                await _redisDb.StringSetAsync(GetLabelsCacheKey(userId), JsonSerializer.Serialize(updatedLabel), TimeSpan.FromMinutes(30));
-                await transaction.CommitAsync();
+                var labels = await _context.Labels
+                    .Where(x => x.UserId == userId)
+                    .ToListAsync();
+                await _redisDb.StringSetAsync(GetLabelsCacheKey(userId), JsonSerializer.Serialize(labels), TimeSpan.FromMinutes(30));
+                await _redisDb.StringSetAsync(GetLabelByIdCacheKey(label.LabelId, userId), JsonSerializer.Serialize(updatedLabel), TimeSpan.FromMinutes(30));
+
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = true,
                     Message = "Label added to note successfully",
-                    Data = label,
+                    Data = updatedLabel,
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error adding label to note: {Error}", ex.Message);
-                await transaction.RollbackAsync();
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = false,
@@ -163,6 +178,7 @@ namespace RepoLayer.Service
                 };
             }
         }
+
         public async Task<ResponseDTO<List<LabelEntity>>> ViewAllLabelsAsync(int userId)
         {
             try
@@ -184,6 +200,7 @@ namespace RepoLayer.Service
                                 Data = labels,
                             };
                         }
+                        _logger.LogWarning("Deserialized labels list is null for user: {UserId}", userId);
                     }
                     catch (JsonException jsonEx)
                     {
@@ -233,14 +250,12 @@ namespace RepoLayer.Service
             }
         }
 
-
         public async Task<ResponseDTO<LabelEntity>> UpdateLabelAsync(LabelUpdateDTO request, int userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation("Attempting to update label with name: {LabelName} to {NewLabelName}", request.OldLabelName, request.NewLabelName);
-                var label = _context.Labels.FirstOrDefault(lbl => lbl.LabelName == request.OldLabelName && lbl.Users.Id == userId);
+                var label = await _context.Labels.FirstOrDefaultAsync(lbl => lbl.LabelName == request.OldLabelName && lbl.UserId == userId);
                 if (label == null)
                 {
                     return new ResponseDTO<LabelEntity>
@@ -252,10 +267,15 @@ namespace RepoLayer.Service
                 label.LabelName = request.NewLabelName;
                 label.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
-                var serialisedLabel = JsonSerializer.Serialize(label);
-                await _redisDb.StringSetAsync(GetLabelsCacheKey(userId), serialisedLabel, TimeSpan.FromMinutes(30));
+
+                // Update caches
+                var labels = await _context.Labels
+                    .Where(x => x.UserId == userId)
+                    .ToListAsync();
+                await _redisDb.StringSetAsync(GetLabelsCacheKey(userId), JsonSerializer.Serialize(labels), TimeSpan.FromMinutes(30));
+                await _redisDb.StringSetAsync(GetLabelByIdCacheKey(label.LabelId, userId), JsonSerializer.Serialize(label), TimeSpan.FromMinutes(30));
+
                 _logger.LogInformation("Label updated successfully: {LabelId}", label.LabelId);
-                await transaction.CommitAsync();
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = true,
@@ -266,7 +286,6 @@ namespace RepoLayer.Service
             catch (Exception ex)
             {
                 _logger.LogError($"Error updating label '{request.OldLabelName}'", ex.Message);
-                await transaction.RollbackAsync();
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = false,
@@ -274,12 +293,13 @@ namespace RepoLayer.Service
                 };
             }
         }
+
         public async Task<ResponseDTO<LabelEntity>> GetLabelByIdAsync(int labelId, int userId)
         {
             try
             {
-                var caheKey = GetLabelsCacheKey(userId);
-                var cachedLabel = await _redisDb.StringGetAsync(caheKey);
+                var cacheKey = GetLabelByIdCacheKey(labelId, userId);
+                var cachedLabel = await _redisDb.StringGetAsync(cacheKey);
                 if (cachedLabel.HasValue)
                 {
                     var label = JsonSerializer.Deserialize<LabelEntity>(cachedLabel);
@@ -288,21 +308,23 @@ namespace RepoLayer.Service
                         return new ResponseDTO<LabelEntity>
                         {
                             IsSuccess = true,
-                            Message = "Label Retrieved From Cache",
+                            Message = "Label retrieved from cache",
                             Data = label
                         };
                     }
                 }
-                var labelFromDb = await _context.Labels.FindAsync(labelId);
-                if(labelFromDb == null)
+                var labelFromDb = await _context.Labels
+                    .Where(x => x.LabelId == labelId && x.UserId == userId)
+                    .FirstOrDefaultAsync();
+                if (labelFromDb == null)
                 {
                     return new ResponseDTO<LabelEntity>
                     {
                         IsSuccess = false,
-                        Message = "Label Not Found!",
+                        Message = "Label not found!",
                     };
                 }
-                await _redisDb.StringSetAsync(caheKey, JsonSerializer.Serialize(labelFromDb), TimeSpan.FromMinutes(30));
+                await _redisDb.StringSetAsync(cacheKey, JsonSerializer.Serialize(labelFromDb), TimeSpan.FromMinutes(30));
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = true,
@@ -312,6 +334,7 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
+                _logger.LogError("Error retrieving label by ID: {Error}", ex.Message);
                 return new ResponseDTO<LabelEntity>
                 {
                     IsSuccess = false,

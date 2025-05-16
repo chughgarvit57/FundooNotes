@@ -30,7 +30,6 @@ namespace RepoLayer.Service
         private string GetArchivedNotesCacheKey(int userId) => $"user:{userId}:archivedNotes";
         public async Task<ResponseDTO<NotesEntity>> CreateNotesAsync(CreateNotesDTO request, int userId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation($"Attempting to create a new note for user ID {userId} with title: {request.Title}");
@@ -72,8 +71,6 @@ namespace RepoLayer.Service
                 // Invalidate the user's notes list cache
                 await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(userId));
 
-                await transaction.CommitAsync();
-
                 _logger.LogInformation($"🎉 A new note was created for user ID {userId} with title: {request.Title}");
                 return new ResponseDTO<NotesEntity>
                 {
@@ -84,7 +81,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"An error occurred while creating a note for user ID {userId}");
                 return new ResponseDTO<NotesEntity>
                 {
@@ -95,7 +91,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<List<NotesEntity>>> GetAllNotesAsync(int userId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var cacheKey = GetUserNotesCacheKey(userId);
@@ -118,7 +113,6 @@ namespace RepoLayer.Service
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, $"Failed to deserialize cached notes for user ID {userId}");
-                        await transaction.RollbackAsync();
                         return new ResponseDTO<List<NotesEntity>>
                         {
                             IsSuccess = false,
@@ -130,7 +124,10 @@ namespace RepoLayer.Service
                     .Where(n => n.UserId == userId)
                     .ToListAsync();
 
-                var sharedNotes = await _userContext.Collaborator.Where(c => c.CollabEmail == _userContext.Users.FirstOrDefault(u => u.Id == userId).Email).Join(_userContext.Notes, collaborator => collaborator.NoteId, note => note.NoteId, (collaborator, note) => note).ToListAsync();
+                var sharedNotes = await _userContext.Collaborator
+                    .Where(c => c.CollabEmail == _userContext.Users.FirstOrDefault(u => u.Id == userId).Email)
+                    .Join(_userContext.Notes, collaborator => collaborator.NoteId, note => note.NoteId, (collaborator, note) => note)
+                    .ToListAsync();
 
                 var allNotes = userNotes.Union(sharedNotes).OrderByDescending(n => n.Created).ToList();
                 if (!allNotes.Any())
@@ -143,7 +140,6 @@ namespace RepoLayer.Service
                 }
                 var serialisedNotes = JsonSerializer.Serialize(allNotes);
                 await _redisDatabase.StringSetAsync(cacheKey, serialisedNotes, TimeSpan.FromMinutes(30));
-                await transaction.CommitAsync();
                 return new ResponseDTO<List<NotesEntity>>
                 {
                     IsSuccess = true,
@@ -153,7 +149,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"An error occurred while retrieving notes for user ID {userId}");
                 return new ResponseDTO<List<NotesEntity>>
                 {
@@ -164,7 +159,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<string>> DeleteNoteAsync(string title)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes.FirstOrDefaultAsync(n => n.Title == title);
@@ -185,8 +179,6 @@ namespace RepoLayer.Service
                 await _redisDatabase.KeyDeleteAsync(GetNoteByTitleCacheKey(title));
                 await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(note.UserId));
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<string>
                 {
                     IsSuccess = true,
@@ -195,7 +187,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"An error occurred while deleting note with title: {title}");
                 return new ResponseDTO<string>
                 {
@@ -206,7 +197,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<NotesEntity>> UpdateNoteAsync(UpdateNotesDTO request, int noteId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes.FindAsync(noteId);
@@ -237,7 +227,6 @@ namespace RepoLayer.Service
                     await _redisDatabase.StringSetAsync(GetNoteByTitleCacheKey(note.Title), serializedNote, TimeSpan.FromMinutes(30));
 
                     await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(note.UserId));
-                    await transaction.CommitAsync();
                     return new ResponseDTO<NotesEntity>
                     {
                         IsSuccess = true,
@@ -248,7 +237,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"An error occurred while updating note with ID: {noteId}");
                 return new ResponseDTO<NotesEntity>
                 {
@@ -259,7 +247,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(string title, int noteId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes.FirstOrDefaultAsync(n => n.Title == title && n.NoteId == noteId);
@@ -287,8 +274,6 @@ namespace RepoLayer.Service
 
                 await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(note.UserId));
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = true,
@@ -298,7 +283,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"An error occurred while pin/unpin note with title: {title}");
                 return new ResponseDTO<bool>
                 {
@@ -309,7 +293,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<bool>> ArchiveNoteAsync(int noteId, int userId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes
@@ -353,8 +336,6 @@ namespace RepoLayer.Service
                     _redisDatabase.KeyDeleteAsync(GetArchivedNotesCacheKey(userId))
                 );
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = true,
@@ -363,7 +344,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"Error archiving note {noteId} for user {userId}");
                 return new ResponseDTO<bool>
                 {
@@ -375,7 +355,6 @@ namespace RepoLayer.Service
 
         public async Task<ResponseDTO<bool>> UnArchiveNoteAsync(int noteId, int userId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes
@@ -419,8 +398,6 @@ namespace RepoLayer.Service
                     _redisDatabase.KeyDeleteAsync(GetArchivedNotesCacheKey(userId))
                 );
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = true,
@@ -429,7 +406,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"Error unarchiving note {noteId} for user {userId}");
                 return new ResponseDTO<bool>
                 {
@@ -440,7 +416,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<string>> BackgroundColorNoteAsync(int noteId, string backgroundColor)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes.FindAsync(noteId);
@@ -477,8 +452,6 @@ namespace RepoLayer.Service
 
                 await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(note.UserId));
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<string>
                 {
                     IsSuccess = true,
@@ -488,7 +461,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"Error changing background color for note {noteId}");
                 return new ResponseDTO<string>
                 {
@@ -499,7 +471,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<bool>> TrashNoteAsync(int noteId, int userId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 // Find note by both title and noteId for validation
@@ -541,8 +512,6 @@ namespace RepoLayer.Service
                     _redisDatabase.KeyDeleteAsync(GetArchivedNotesCacheKey(note.UserId))
                 );
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = true,
@@ -552,7 +521,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"Error updating trash status for note {noteId}");
                 return new ResponseDTO<bool>
                 {
@@ -564,7 +532,6 @@ namespace RepoLayer.Service
 
         public async Task<ResponseDTO<NotesEntity>> RestoreNoteAsync(int noteId, int userId)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes
@@ -592,8 +559,6 @@ namespace RepoLayer.Service
                     _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(userId))
                 );
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<NotesEntity>
                 {
                     IsSuccess = true,
@@ -603,7 +568,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"An error occurred while restoring note with ID: {noteId}");
                 return new ResponseDTO<NotesEntity>
                 {
@@ -614,7 +578,6 @@ namespace RepoLayer.Service
         }
         public async Task<ResponseDTO<string>> UploadImageAsync(int noteId, int userId, IFormFile imageFile)
         {
-            using var transaction = await _userContext.Database.BeginTransactionAsync();
             try
             {
                 var note = await _userContext.Notes
@@ -690,8 +653,6 @@ namespace RepoLayer.Service
 
                 await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(userId));
 
-                await transaction.CommitAsync();
-
                 return new ResponseDTO<string>
                 {
                     IsSuccess = true,
@@ -701,7 +662,6 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, $"Error uploading image for note {noteId} by user {userId}");
                 return new ResponseDTO<string>
                 {
