@@ -157,7 +157,7 @@ namespace FundooNotes.Controllers
                     return BadRequest(new ResponseDTO<string>()
                     {
                         IsSuccess = false,
-                        Message = "Invalid credentials"
+                        Message = "User not found! Please register first!"
                     });
                 }
                 var token = _authService.GenerateToken(response.Data);
