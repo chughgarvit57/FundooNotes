@@ -245,11 +245,11 @@ namespace RepoLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(string title, int noteId)
+        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId)
         {
             try
             {
-                var note = await _userContext.Notes.FirstOrDefaultAsync(n => n.Title == title && n.NoteId == noteId);
+                var note = await _userContext.Notes.FirstOrDefaultAsync(n =>  n.NoteId == noteId);
                 if (note == null)
                 {
                     return new ResponseDTO<bool>
@@ -283,7 +283,7 @@ namespace RepoLayer.Service
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An error occurred while pin/unpin note with title: {title}");
+                _logger.LogError(ex, $"An error occurred while pin/unpin note with id: {noteId}");
                 return new ResponseDTO<bool>
                 {
                     IsSuccess = false,
@@ -418,7 +418,7 @@ namespace RepoLayer.Service
         {
             try
             {
-                var note = await _userContext.Notes.FindAsync(noteId);
+                var note = await _userContext.Notes.FirstOrDefaultAsync(x => x.NoteId == noteId && x.BackgroundColor == backgroundColor);
 
                 if (note == null)
                 {

@@ -73,11 +73,11 @@ namespace BusinessLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(string title, int noteId)
+        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId)
         {
             try
             {
-                return await _notesRL.PinUnpinNoteAsync(title, noteId);
+                return await _notesRL.PinUnpinNoteAsync(noteId);
             }
             catch (Exception ex)
             {

@@ -101,6 +101,7 @@ namespace RepoLayer.Service
                 _emailService.SendEmail(message.To, message.Subject, message.Body);
 
                 _logger.LogInformation("User registered and welcome email sent to: {Email}", request.Email);
+                request.Password = hashedPassword;
 
                 return new ResponseDTO<UserDTO>
                 {
@@ -158,6 +159,7 @@ namespace RepoLayer.Service
                 await _redisDatabase.StringSetAsync(GetUserCacheKey(user.Email), serializedUser, TimeSpan.FromMinutes(30));
 
                 var userInfo = $"{user.FirstName} {user.LastName}, Email: {user.Email}";
+
                 return new ResponseDTO<string>
                 {
                     IsSuccess = true,

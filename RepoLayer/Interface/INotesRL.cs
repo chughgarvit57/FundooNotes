@@ -10,7 +10,7 @@ namespace RepoLayer.Interface
         Task<ResponseDTO<List<NotesEntity>>> GetAllNotesAsync(int userId);
         Task<ResponseDTO<string>> DeleteNoteAsync(string title);
         Task<ResponseDTO<NotesEntity>> UpdateNoteAsync(UpdateNotesDTO request, int noteId);
-        Task<ResponseDTO<bool>> PinUnpinNoteAsync(string title, int noteId);
+        Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId);
         Task<ResponseDTO<bool>> ArchiveNoteAsync(int noteId, int userId);
         Task<ResponseDTO<bool>> UnArchiveNoteAsync(int noteId, int userId);
         Task<ResponseDTO<string>> BackgroundColorNoteAsync(int noteId, string backgroundColor);
