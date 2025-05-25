@@ -73,11 +73,11 @@ namespace BusinessLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId)
+        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId, int userId)
         {
             try
             {
-                return await _notesRL.PinUnpinNoteAsync(noteId);
+                return await _notesRL.PinUnpinNoteAsync(noteId, userId);
             }
             catch (Exception ex)
             {
@@ -88,11 +88,11 @@ namespace BusinessLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<string>> BackgroundColorNoteAsync(int noteId, string backgroundColor)
+        public async Task<ResponseDTO<string>> BackgroundColorNoteAsync(int userId, int noteId, string backgroundColor)
         {
             try
             {
-                return await _notesRL.BackgroundColorNoteAsync(noteId, backgroundColor);
+                return await _notesRL.BackgroundColorNoteAsync(userId, noteId, backgroundColor);
             }
             catch (Exception ex)
             {

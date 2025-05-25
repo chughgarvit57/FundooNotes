@@ -169,12 +169,12 @@ namespace FundooNotes.Controllers
         /// <returns>Updated pin status of the note</returns>
         [HttpGet("PinUnpin")]
         [Authorize]
-        public async Task<IActionResult> PinUnpinNote([FromForm] string title, [FromForm] int noteId)
+        public async Task<IActionResult> PinUnpinNote([FromForm] int noteId)
         {
             try
             {
                 var userId = Convert.ToInt32(User.Claims.FirstOrDefault(c => c.Type == "Id")?.Value);
-                var result = await _notesBL.PinUnpinNoteAsync(title, userId);
+                var result = await _notesBL.PinUnpinNoteAsync(noteId, userId);
                 if (result.IsSuccess)
                 {
                     return Ok(result);
@@ -265,12 +265,12 @@ namespace FundooNotes.Controllers
         /// <returns>Updated note details with new background color</returns>
         [HttpPatch("BackgroundColorNote")]
         [Authorize]
-        public async Task<IActionResult> BackgroundColorNote([FromForm] string backgroundColor)
+        public async Task<IActionResult> BackgroundColorNote([FromForm] string backgroundColor, [FromForm] int noteId)
         {
             try
             {
                 var userId = Convert.ToInt32(User.Claims.FirstOrDefault(c => c.Type == "Id")?.Value);
-                var result = await _notesBL.BackgroundColorNoteAsync(userId, backgroundColor);
+                var result = await _notesBL.BackgroundColorNoteAsync(userId, noteId, backgroundColor);
                 if (result.IsSuccess)
                 {
                     return Ok(result);
@@ -327,7 +327,7 @@ namespace FundooNotes.Controllers
         /// </summary>
         /// <param name="noteId">ID of the note to restore</param>
         /// <returns>Restored note details or error message</returns>
-        [HttpPost("RestoreNote")]
+        [HttpPatch("RestoreNote")]
         [Authorize]
         public async Task<IActionResult> RestoreNote([FromForm] int noteId)
         {

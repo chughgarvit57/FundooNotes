@@ -10,10 +10,10 @@ namespace BusinessLayer.Interface
         Task<ResponseDTO<List<NotesEntity>>> GetAllNotesAsync(int userId);
         Task<ResponseDTO<string>> DeleteNoteAsync(string title);
         Task<ResponseDTO<NotesEntity>> UpdateNoteAsync(UpdateNotesDTO request, int noteId);
-        Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId);
+        Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId, int userId);
         Task<ResponseDTO<bool>> ArchiveNoteAsync(int noteId, int userId);
         Task<ResponseDTO<bool>> UnArchiveNoteAsync(int noteId, int userId);
-        Task<ResponseDTO<string>> BackgroundColorNoteAsync(int noteId, string backgroundColor);
+        Task<ResponseDTO<string>> BackgroundColorNoteAsync(int userId, int noteId, string backgroundColor);
         Task<ResponseDTO<bool>> TrashNoteAsync(int noteId, int userId);
         Task<ResponseDTO<NotesEntity>> RestoreNoteAsync(int noteId, int userId);
         Task<ResponseDTO<string>> UploadImageAsync(int noteId, int userId, IFormFile imageFile);

@@ -245,11 +245,11 @@ namespace RepoLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId)
+        public async Task<ResponseDTO<bool>> PinUnpinNoteAsync(int noteId, int userId)
         {
             try
             {
-                var note = await _userContext.Notes.FirstOrDefaultAsync(n =>  n.NoteId == noteId);
+                var note = await _userContext.Notes.FirstOrDefaultAsync(n =>  n.NoteId == noteId && n.UserId == userId);
                 if (note == null)
                 {
                     return new ResponseDTO<bool>
@@ -414,11 +414,11 @@ namespace RepoLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<string>> BackgroundColorNoteAsync(int noteId, string backgroundColor)
+        public async Task<ResponseDTO<string>> BackgroundColorNoteAsync(int userId, int noteId, string backgroundColor)
         {
             try
             {
-                var note = await _userContext.Notes.FirstOrDefaultAsync(x => x.NoteId == noteId && x.BackgroundColor == backgroundColor);
+                var note = await _userContext.Notes.FirstOrDefaultAsync(x => x.NoteId == noteId && x.BackgroundColor == backgroundColor && x.UserId == userId);
 
                 if (note == null)
                 {

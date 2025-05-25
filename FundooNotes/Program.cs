@@ -125,10 +125,10 @@ namespace FundooNotes
                     app.UseSwagger();
                     app.UseSwaggerUI();
                 }
-                app.UseCors("AllowAll");
                 app.UseHttpsRedirection();
                 app.UseMiddleware<ExceptionMiddleware>();
                 app.UseMiddleware<UnauthorisedMiddleware>();
+                app.UseCors("AllowAll");
                 app.UseAuthentication();
                 app.UseAuthorization();
 

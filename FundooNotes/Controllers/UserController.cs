@@ -13,6 +13,7 @@ using RepoLayer.Helper;
 
 namespace FundooNotes.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
@@ -49,6 +50,7 @@ namespace FundooNotes.Controllers
         /// <returns>Response with registered user details or error message</returns>
         [HttpPost("register")]
         [AllowAnonymous]
+        [HttpOptions]
         public async Task<IActionResult> Register(UserDTO request)
         {
             try
@@ -157,7 +159,7 @@ namespace FundooNotes.Controllers
                     return BadRequest(new ResponseDTO<string>()
                     {
                         IsSuccess = false,
-                        Message = "User not found! Please register first!"
+                        Message = response.Message
                     });
                 }
                 var token = _authService.GenerateToken(response.Data);
