@@ -17,6 +17,6 @@ namespace ModelLayer.Entity
         [JsonIgnore]
         public UserEntity Users { get; set; }
         [JsonIgnore]
-        public NotesEntity Notes { get; set; }
+        public NoteEntity Notes { get; set; }
     }
 }

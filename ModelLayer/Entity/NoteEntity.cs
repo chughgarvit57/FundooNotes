@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace ModelLayer.Entity
 {
-    public class NotesEntity
+    public class NoteEntity
     {
         [Key]
         public int NoteId { get; set; }

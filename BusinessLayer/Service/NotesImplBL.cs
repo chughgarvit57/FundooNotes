@@ -13,7 +13,7 @@ namespace BusinessLayer.Service
         {
             _notesRL = notesRL;
         }
-        public async Task<ResponseDTO<NotesEntity>> CreateNotesAsync(CreateNotesDTO notesEntity, int userId)
+        public async Task<ResponseDTO<NoteEntity>> CreateNotesAsync(CreateNotesDTO notesEntity, int userId)
         {
             try
             {
@@ -21,14 +21,14 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = false,
                     Message = ex.Message
                 };
             }
         }
-        public async Task<ResponseDTO<List<NotesEntity>>> GetAllNotesAsync(int noteId)
+        public async Task<ResponseDTO<List<NoteEntity>>> GetAllNotesAsync(int noteId)
         {
             try
             {
@@ -36,7 +36,7 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<List<NotesEntity>>
+                return new ResponseDTO<List<NoteEntity>>
                 {
                     IsSuccess = false,
                     Message = ex.Message
@@ -58,15 +58,15 @@ namespace BusinessLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<NotesEntity>> UpdateNoteAsync(UpdateNotesDTO request, int noteId)
+        public async Task<ResponseDTO<NoteEntity>> UpdateNoteAsync(int noteId, int userId, UpdateNotesDTO request)
         {
             try
             {
-                return await _notesRL.UpdateNoteAsync(request, noteId);
+                return await _notesRL.UpdateNoteAsync(noteId, userId, request);
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = false,
                     Message = ex.Message
@@ -118,7 +118,7 @@ namespace BusinessLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<NotesEntity>> RestoreNoteAsync(int noteId, int userId)
+        public async Task<ResponseDTO<NoteEntity>> RestoreNoteAsync(int noteId, int userId)
         {
             try
             {
@@ -126,7 +126,7 @@ namespace BusinessLayer.Service
             }
             catch (Exception ex)
             {
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = false,
                     Message = ex.Message

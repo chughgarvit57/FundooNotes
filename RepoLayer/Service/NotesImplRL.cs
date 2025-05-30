@@ -28,7 +28,7 @@ namespace RepoLayer.Service
         private string GetPinnedNotesCacheKey(int userId) => $"user:{userId}:pinnedNotes";
         private string GetNoteByTitleCacheKey(string title) => $"note:title:{title}";
         private string GetArchivedNotesCacheKey(int userId) => $"user:{userId}:archivedNotes";
-        public async Task<ResponseDTO<NotesEntity>> CreateNotesAsync(CreateNotesDTO request, int userId)
+        public async Task<ResponseDTO<NoteEntity>> CreateNotesAsync(CreateNotesDTO request, int userId)
         {
             try
             {
@@ -38,14 +38,14 @@ namespace RepoLayer.Service
                 if (user == null)
                 {
                     _logger.LogWarning($"User with ID {userId} not found when trying to create a note.");
-                    return new ResponseDTO<NotesEntity>
+                    return new ResponseDTO<NoteEntity>
                     {
                         IsSuccess = false,
                         Message = "User not found",
                     };
                 }
 
-                var notes = new NotesEntity
+                var notes = new NoteEntity
                 {
                     UserId = userId,
                     Title = request.Title,
@@ -72,7 +72,7 @@ namespace RepoLayer.Service
                 await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(userId));
 
                 _logger.LogInformation($"🎉 A new note was created for user ID {userId} with title: {request.Title}");
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = true,
                     Message = "Awesome! Your note has been successfully created!",
@@ -82,75 +82,55 @@ namespace RepoLayer.Service
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while creating a note for user ID {userId}");
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = false,
                     Message = $"An unexpected error occurred: {ex.Message}"
                 };
             }
         }
-        public async Task<ResponseDTO<List<NotesEntity>>> GetAllNotesAsync(int userId)
+        public async Task<ResponseDTO<List<NoteEntity>>> GetAllNotesAsync(int userId)
         {
             try
             {
                 var cacheKey = GetUserNotesCacheKey(userId);
                 var cachedNotes = await _redisDatabase.StringGetAsync(cacheKey);
-                if (cachedNotes.HasValue)
+                if (!string.IsNullOrEmpty(cachedNotes))
                 {
-                    try
+                    var notes = JsonSerializer.Deserialize<List<NoteEntity>>(cachedNotes, new JsonSerializerOptions
                     {
-                        var notesList = JsonSerializer.Deserialize<List<NotesEntity>>(cachedNotes);
-                        if (notesList != null && notesList.Any())
-                        {
-                            return new ResponseDTO<List<NotesEntity>>
-                            {
-                                IsSuccess = true,
-                                Message = "Notes retrieved from cache",
-                                Data = notesList
-                            };
-                        }
-                    }
-                    catch (Exception ex)
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    _logger.LogInformation($"Retrieved notes from cache for user {userId}: {cachedNotes}");
+                    return new ResponseDTO<List<NoteEntity>>
                     {
-                        _logger.LogError(ex, $"Failed to deserialize cached notes for user ID {userId}");
-                        return new ResponseDTO<List<NotesEntity>>
-                        {
-                            IsSuccess = false,
-                            Message = "Failed to deserialize cached notes"
-                        };
-                    }
-                }
-                var userNotes = await _userContext.Notes
-                    .Where(n => n.UserId == userId)
-                    .ToListAsync();
-
-                var sharedNotes = await _userContext.Collaborator
-                    .Where(c => c.CollabEmail == _userContext.Users.FirstOrDefault(u => u.Id == userId).Email)
-                    .Join(_userContext.Notes, collaborator => collaborator.NoteId, note => note.NoteId, (collaborator, note) => note)
-                    .ToListAsync();
-
-                var allNotes = userNotes.Union(sharedNotes).OrderByDescending(n => n.Created).ToList();
-                if (!allNotes.Any())
-                {
-                    return new ResponseDTO<List<NotesEntity>>
-                    {
-                        IsSuccess = false,
-                        Message = "No notes found"
+                        IsSuccess = true,
+                        Message = "Notes retrieved from cache",
+                        Data = notes
                     };
                 }
-                var serialisedNotes = JsonSerializer.Serialize(allNotes);
-                await _redisDatabase.StringSetAsync(cacheKey, serialisedNotes, TimeSpan.FromMinutes(30));
-                return new ResponseDTO<List<NotesEntity>>
+                var notesFromDb = await _userContext.Notes
+                    .Where(n => n.UserId == userId)
+                    .ToListAsync();
+                _logger.LogInformation($"Retrieved notes from database for user {userId}: {JsonSerializer.Serialize(notesFromDb)}");
+
+                var serializedNotes = JsonSerializer.Serialize(notesFromDb, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await _redisDatabase.StringSetAsync(cacheKey, serializedNotes, TimeSpan.FromMinutes(30));
+
+                return new ResponseDTO<List<NoteEntity>>
                 {
                     IsSuccess = true,
-                    Message = "Notes retrieved from database!",
-                    Data = allNotes
+                    Message = "Notes retrieved successfully",
+                    Data = notesFromDb
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An error occurred while retrieving notes for user ID {userId}");
-                return new ResponseDTO<List<NotesEntity>>
+                _logger.LogError(ex, $"An error occurred while retrieving notes for user {userId}");
+                return new ResponseDTO<List<NoteEntity>>
                 {
                     IsSuccess = false,
                     Message = $"An unexpected error occurred: {ex.Message}"
@@ -195,14 +175,14 @@ namespace RepoLayer.Service
                 };
             }
         }
-        public async Task<ResponseDTO<NotesEntity>> UpdateNoteAsync(UpdateNotesDTO request, int noteId)
+        public async Task<ResponseDTO<NoteEntity>> UpdateNoteAsync(int noteId, int userId, UpdateNotesDTO request)
         {
             try
             {
-                var note = await _userContext.Notes.FindAsync(noteId);
+                var note = await _userContext.Notes.FirstOrDefaultAsync(x => x.NoteId == noteId && x.UserId == userId);
                 if (note == null)
                 {
-                    return new ResponseDTO<NotesEntity>
+                    return new ResponseDTO<NoteEntity>
                     {
                         IsSuccess = false,
                         Message = "Note not found"
@@ -212,13 +192,8 @@ namespace RepoLayer.Service
                 {
                     note.Title = request.Title;
                     note.Description = request.Description;
-                    note.Reminder = request.Reminder;
                     note.BackgroundColor = request.BackgroundColor;
-                    note.Image = request.Image;
-                    note.Pin = request.Pin;
-                    note.Edited = request.Edited;
-                    note.Trash = request.Trash;
-                    note.Archive = request.Archive;
+                    note.Edited = DateTime.Now;
                     _userContext.Notes.Update(note);
                     await _userContext.SaveChangesAsync();
 
@@ -227,7 +202,7 @@ namespace RepoLayer.Service
                     await _redisDatabase.StringSetAsync(GetNoteByTitleCacheKey(note.Title), serializedNote, TimeSpan.FromMinutes(30));
 
                     await _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(note.UserId));
-                    return new ResponseDTO<NotesEntity>
+                    return new ResponseDTO<NoteEntity>
                     {
                         IsSuccess = true,
                         Message = "Note updated successfully",
@@ -238,7 +213,7 @@ namespace RepoLayer.Service
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while updating note with ID: {noteId}");
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = false,
                     Message = $"An unexpected error occurred: {ex.Message}"
@@ -418,7 +393,7 @@ namespace RepoLayer.Service
         {
             try
             {
-                var note = await _userContext.Notes.FirstOrDefaultAsync(x => x.NoteId == noteId && x.BackgroundColor == backgroundColor && x.UserId == userId);
+                var note = await _userContext.Notes.FirstOrDefaultAsync(x => x.NoteId == noteId && x.UserId == userId);
 
                 if (note == null)
                 {
@@ -530,7 +505,7 @@ namespace RepoLayer.Service
             }
         }
 
-        public async Task<ResponseDTO<NotesEntity>> RestoreNoteAsync(int noteId, int userId)
+        public async Task<ResponseDTO<NoteEntity>> RestoreNoteAsync(int noteId, int userId)
         {
             try
             {
@@ -539,7 +514,7 @@ namespace RepoLayer.Service
 
                 if (note == null)
                 {
-                    return new ResponseDTO<NotesEntity>
+                    return new ResponseDTO<NoteEntity>
                     {
                         IsSuccess = false,
                         Message = "Note not found or doesn't belong to user",
@@ -559,7 +534,7 @@ namespace RepoLayer.Service
                     _redisDatabase.KeyDeleteAsync(GetUserNotesCacheKey(userId))
                 );
 
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = true,
                     Message = "Note restored successfully",
@@ -569,7 +544,7 @@ namespace RepoLayer.Service
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while restoring note with ID: {noteId}");
-                return new ResponseDTO<NotesEntity>
+                return new ResponseDTO<NoteEntity>
                 {
                     IsSuccess = false,
                     Message = $"An unexpected error occurred: {ex.Message}"

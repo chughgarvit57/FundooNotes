@@ -16,6 +16,6 @@ namespace ModelLayer.Entity
         [ForeignKey("Note")]
         public int NoteId { get; set; }
         [JsonIgnore]
-        public NotesEntity Note { get; set; }
+        public NoteEntity Note { get; set; }
     }
 }

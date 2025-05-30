@@ -59,7 +59,7 @@ namespace FundooNotes.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ResponseDTO<NotesEntity>()
+                return BadRequest(new ResponseDTO<NoteEntity>()
                 {
                     IsSuccess = false,
                     Message = ex.Message
@@ -90,7 +90,7 @@ namespace FundooNotes.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ResponseDTO<NotesEntity>()
+                return BadRequest(new ResponseDTO<NoteEntity>()
                 {
                     IsSuccess = false,
                     Message = ex.Message
@@ -133,15 +133,16 @@ namespace FundooNotes.Controllers
         /// Updates an existing note with new details.
         /// </summary>
         /// <param name="request">Contains updated note information</param>
+        /// /// <param name="noteId">ID of the note</param>
         /// <returns>Updated note details or error message</returns>
         [HttpPut("UpdateNote")]
         [Authorize]
-        public async Task<IActionResult> UpdateNote(UpdateNotesDTO request)
+        public async Task<IActionResult> UpdateNote(int noteId,UpdateNotesDTO request)
         {
             try
             {
                 var userId = Convert.ToInt32(User.Claims.FirstOrDefault(c => c.Type == "Id")?.Value);
-                var result = await _notesBL.UpdateNoteAsync(request, userId);
+                var result = await _notesBL.UpdateNoteAsync(noteId, userId, request);
                 if (result.IsSuccess)
                 {
                     return Ok(result);
@@ -153,7 +154,7 @@ namespace FundooNotes.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ResponseDTO<NotesEntity>()
+                return BadRequest(new ResponseDTO<NoteEntity>()
                 {
                     IsSuccess = false,
                     Message = ex.Message
@@ -167,7 +168,7 @@ namespace FundooNotes.Controllers
         /// <param name="title">Title of the note to pin/unpin</param>
         /// <param name="noteId">ID of the note (optional)</param>
         /// <returns>Updated pin status of the note</returns>
-        [HttpGet("PinUnpin")]
+        [HttpPatch("PinUnpin")]
         [Authorize]
         public async Task<IActionResult> PinUnpinNote([FromForm] int noteId)
         {
@@ -346,7 +347,7 @@ namespace FundooNotes.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new ResponseDTO<NotesEntity>()
+                return BadRequest(new ResponseDTO<NoteEntity>()
                 {
                     IsSuccess = false,
                     Message = ex.Message
